@@ -62,10 +62,10 @@ get_session_data(Req) when is_record(Req, kb_request) ->
 	case Req#kb_request.session_data of 
 		none -> 
 			case kb_session:get_session(Req#kb_request.session_manager, Req#kb_request.data) of
-				{no_session, SessionData, Data1} ->
-					{SessionData, Req#kb_request{data=Data1, session_data=SessionData}};
-				{SessionID, SessionData, Data1} ->
-					{SessionData, Req#kb_request{data=Data1, session_key=SessionID, session_data=SessionData}}
+				{no_session, SessionData} ->
+					{SessionData, Req#kb_request{session_data=SessionData}};
+				{SessionID, SessionData} ->
+					{SessionData, Req#kb_request{session_key=SessionID, session_data=SessionData}}
 			end;
 		SessionData ->
 			{SessionData, Req}

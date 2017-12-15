@@ -36,8 +36,8 @@ set_locale(Locale, Req) ->
 
 remove_locale(Req) -> 
 	Req1 = kb_session_util:remove_system_property(?SYSTEM_CHOSEN_LANGUAGE, Req),
-	{Locales, Data1} = get_accept_languages(Req1#kb_request.data),
-	Req1#kb_request{locales=Locales, resources=none, data=Data1}.
+	Locales = get_accept_languages(Req1#kb_request.data),
+	Req1#kb_request{locales=Locales, resources=none}.
 
 %% ====================================================================
 %% Internal functions
@@ -46,8 +46,8 @@ remove_locale(Req) ->
 find_locales(Req) ->
 	case get_user_locale(Req) of
 		{none, Req1} ->
-			{Locales, Data1} = get_accept_languages(Req1#kb_request.data),
-			{Locales, Req1#kb_request{data=Data1}};
+			Locales = get_accept_languages(Req1#kb_request.data),
+			{Locales, Req1};
 		{Locale, Req1} -> {[Locale], Req1}
 	end.
 
@@ -60,16 +60,16 @@ get_user_locale(Req) ->
 	{ChosenLanguage, Req1}.
 
 get_accept_languages(Data) ->
-	{AcceptLanguages, Data1} = kb_http:get_header(<<"accept-language">>, Data),
+	AcceptLanguages = kb_http:get_header(<<"accept-language">>, Data),
 	case AcceptLanguages of
-		undefined -> {[], Data1};
-		error -> {[], Data1};
+		undefined -> [];
+		error -> [];
 		_ ->
 			Fun = fun({_TagA, QualityA}, {_TagB, QualityB}) -> 
 					QualityA > QualityB 
 			end,
 			SortedAcceptLanguages = lists:sort(Fun, AcceptLanguages),
-			{get_locales(SortedAcceptLanguages, []), Data1}
+			get_locales(SortedAcceptLanguages, [])
 	end.
 
 get_locales([], []) -> ?ANY_LOCALE;

@@ -50,17 +50,16 @@ handle({redirect, Url, Req}) when is_binary(Url) ->
 	handle({raw, 302, [{<<"Location">>, Url}], [], Req});
 
 handle({raw, Status, Headers, Body, Req}) ->
-	{ok, Data1} = session_touch(Req),
-	{ok, Data2} = cowboy_req:reply(Status, Headers, Body, Data1),
-	Data2.
+	ok = session_touch(Req),
+	cowboy_req:reply(Status, Headers, Body, Req).
 
 %% ====================================================================
 %% Internal functions
 %% ====================================================================
 
-session_touch(#kb_request{session_manager=none, data=Data}) -> {ok, Data};
-session_touch(#kb_request{session_saved=yes, data=Data}) -> {ok, Data};
+session_touch(#kb_request{session_manager=none}) -> ok;
+session_touch(#kb_request{session_saved=yes}) -> ok;
 session_touch(#kb_request{session_manager=SessionManager, session_key=none, data=Data}) -> 
 	kb_session:touch_session(SessionManager, Data);
-session_touch(#kb_request{session_manager=SessionManager, session_key=SessionID, data=Data}) -> 
-	kb_session:touch_session(SessionManager, SessionID, Data).
+session_touch(#kb_request{session_manager=SessionManager, session_key=SessionID}) -> 
+	kb_session:touch_session_id(SessionManager, SessionID).

@@ -10,7 +10,15 @@ Using rebar:
 
 ```erlang
 {deps, [
-	{kill_bill, ".*", {hg, "https://bitbucket.org/jjmrocha/kill-bill", "1.0.0"}}
+	{kill_bill, ".*", {git, "https://github.com/jjmrocha/kill-bill.git", "master"}}
+]}.
+```
+
+Using rebar3:
+
+```erlang
+{deps, [
+	{kill_bill, {git, "https://github.com/jjmrocha/kill-bill.git", {branch, "master"}}}
 ]}.
 ```
 

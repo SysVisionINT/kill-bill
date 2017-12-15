@@ -13,30 +13,29 @@
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
 %%
+%% Modifications copyright (C) 2017 Sysvision, Lda.
+%%
 
 -module(kb_cowboy_template).
 
 -include("kill_bill.hrl").
 
--behaviour(cowboy_http_handler).
+-behaviour(cowboy_handler).
 
--export([init/3, handle/2, terminate/3]).
+-export([init/2, terminate/3]).
 
-init(_Transport, Data, Opts) ->
+init(Data, Opts) ->
 	ResourceServer = proplists:get_value(resource_server, Opts),
 	Context = proplists:get_value(context, Opts),
 	SessionManager = proplists:get_value(session_manager, Opts),
 	Static = proplists:get_value(static, Opts),
-	BaseRequest = #kb_request{context=list_to_binary(Context), 
-							  resource_server=ResourceServer, 
-							  session_manager=SessionManager, 
-							  static=list_to_binary(Static)},
-	{ok, Data, BaseRequest}.
-
-handle(Data, BaseRequest) ->
-	{Path, Data1} = cowboy_req:path_info(Data),
+	BaseRequest = #kb_request{context=list_to_binary(Context),
+	                      resource_server=ResourceServer,
+	                      session_manager=SessionManager,
+	                      static=list_to_binary(Static)},
+	Path = cowboy_req:path_info(Data),
 	NewPath = join(Path, <<>>),
-	Request = BaseRequest#kb_request{data=Data1},
+	Request = #kb_request{data=Data},
 	Data2 = kb_template_util:execute(NewPath, Request),
 	{ok, Data2, BaseRequest}.
 

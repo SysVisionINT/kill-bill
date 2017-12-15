@@ -22,23 +22,20 @@
 -export([get_header/2, get_cookie/2, set_cookie/5]).
 
 get_header(Name, Data) ->
-	case cowboy_req:parse_header(Name, Data) of
-		{ok, Header, Data1} -> {Header, Data1};
-		{undefined, _, Data1} -> {undefined, Data1};
-		_ -> {error, Data}
-	end.
+	 cowboy_req:parse_header(Name, Data).
 
 set_cookie(Path, CookieName, Value, MaxAge, Data) ->
 	Opts = case MaxAge of
 		none -> [{path, Path}];
 		_ -> [{path, Path}, {max_age, MaxAge}] 
 	end,
-	cowboy_req:set_resp_cookie(CookieName, Value, Opts, Data).
+	cowboy_req:set_resp_cookie(CookieName, Value, Data, Opts).
 
 get_cookie(CookieName, Data) ->
-	case cowboy_req:cookie(CookieName, Data) of
-		{undefined, Data2} -> {undefined, Data2};
-		{Value, Data2} -> {Value, Data2}
+	Cookies = cowboy_req:parse_cookies(Data),
+	case lists:keyfind(CookieName, 1, Cookies) of
+		{_, Value} -> Value;
+		_ -> undefined
 	end.
 
 %% ====================================================================

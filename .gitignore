@@ -1,1 +1,6 @@
 /ebin/
+/.project
+/.settings/
+/.gitignore
+/_build/
+/rebar.lock

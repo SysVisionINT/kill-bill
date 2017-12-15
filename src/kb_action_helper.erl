@@ -57,42 +57,38 @@ get_context(Req) ->
 get_action_prefix(Req) ->
 	Req#kb_request.action_prefix.
 
--spec get_headers(Req :: #kb_request{}) -> {Headers, #kb_request{}}
-	when Headers :: [{binary(), binary()}, ...].
+-spec get_headers(Req :: #kb_request{}) -> #{binary() => binary()}.
 get_headers(Req) ->
-	{Headers, Data1} = cowboy_req:headers(Req#kb_request.data),
-	{Headers, Req#kb_request{data=Data1}}.
+	cowboy_req:headers(Req#kb_request.data).
 
--spec get_content_type(Req :: #kb_request{}) -> {binary(), #kb_request{}}.
+-spec get_content_type(Req :: #kb_request{}) -> binary().
 get_content_type(Req) ->
-	{Headers, Req1} = get_headers(Req),
-	case lists:keyfind(?CONTENT_TYPE_HEADER, 1, Headers) of
-		false -> {<<>>, Req1};
-		{_, Content} -> {Content, Req1}
+	Headers = get_headers(Req),
+	case maps:find(?CONTENT_TYPE_HEADER, Headers) of
+		{ok, Content} -> Content;
+		_ -> <<>>
 	end.
 
--spec get_accept_header(Req :: #kb_request{}) -> {[binary(), ...], #kb_request{}}.
+-spec get_accept_header(Req :: #kb_request{}) -> [binary(), ...].
 get_accept_header(Req) ->
 	case cowboy_req:parse_header(?ACCEPT_HEADER, Req#kb_request.data, <<"*">>) of
-		{ok, <<"*">>, Data1} -> {[<<"*">>], Req#kb_request{data=Data1}};
-		{ok, Accept, Data1} ->
-			AcceptList = prioritize_accept(Accept),
-			{AcceptList, Req#kb_request{data=Data1}};
-		{undefined, _, Data1} -> {[<<"*">>], Req#kb_request{data=Data1}}
+		<<"*">> -> [<<"*">>];
+		undefined -> [<<"*">>];
+		Accept -> prioritize_accept(Accept)
 	end.
 
 -spec get_args(Req :: #kb_request{}) -> {Args, #kb_request{}}
 	when Args :: [{binary(), binary()}, ...].
-get_args(Req) ->
-	{QSVals, Data1} = cowboy_req:qs_vals(Req#kb_request.data),
-	{BodyQS1, Data3} = case Req#kb_request.method of
+get_args(Req=#kb_request{method=Method, data=Data}) ->
+	QSVals = cowboy_req:parse_qs(Data),
+	{BodyQS1, Data2} = case Method of
 		<<"POST">> ->
-			{ok, BodyQS, Data2} = cowboy_req:body_qs(Data1),
-			{BodyQS, Data2};
-		_ -> {[], Data1}
+			{ok, BodyQS, Data1} = cowboy_req:read_urlencoded_body(Data),
+			{BodyQS, Data1};
+		_ -> {[], Data}
 	end,
 	QS = mergeQS(QSVals, BodyQS1, []),
-	{QS, Req#kb_request{data=Data3}}.
+	{QS, Req#kb_request{data=Data2}}.
 
 -spec get_json(Req :: #kb_request{}) -> {jsx:json_term(), #kb_request{}}.
 get_json(Req) ->
@@ -102,23 +98,23 @@ get_json(Req) ->
 			JSon = kb_json:from_proplist(Args),
 			{JSon, Req1};
 		_ ->
-			{ContentType, Req1} = get_content_type(Req),
+			ContentType = get_content_type(Req),
 			case mime_type(ContentType) of
 				?JSON_CONTENT_TYPE ->
-					{ok, Body, Data1} = cowboy_req:body(Req1#kb_request.data),
+					{ok, Body, Data1} = cowboy_req:read_body(Req#kb_request.data),
 					JSon = kb_json:decode(Body),
-					{JSon, Req1#kb_request{data=Data1}};
+					{JSon, Req#kb_request{data=Data1}};
 				?FORM_CONTENT_TYPE ->
-					{ok, BodyQS, Data1} = cowboy_req:body_qs(Req1#kb_request.data),
+					{ok, BodyQS, Data1} = cowboy_req:read_urlencoded_body(Req#kb_request.data),
 					JSon = jsondoc:from_proplist(BodyQS),
-					{JSon, Req1#kb_request{data=Data1}};
-				_ -> {[], Req1}
+					{JSon, Req#kb_request{data=Data1}};
+				_ -> {[], Req}
 			end
 	end.
 
 -spec get_body(Req :: #kb_request{}) -> {binary(), #kb_request{}}.
 get_body(Req) ->
-	{ok, Body, Data1} = cowboy_req:body(Req#kb_request.data),
+	{ok, Body, Data1} = cowboy_req:read_body(Req#kb_request.data),
 	{Body, Req#kb_request{data=Data1}}.
 
 -spec get_session(Req :: #kb_request{}) -> {SessionData, #kb_request{}}
@@ -152,10 +148,9 @@ invalidate_session(Req) ->
 			Req#kb_request{session_saved=yes, data=Data1}
 	end.	
 
--spec get_cookie(Name :: binary(), Req :: #kb_request{}) -> {binary(), #kb_request{}}.
+-spec get_cookie(Name :: binary(), Req :: #kb_request{}) -> binary().
 get_cookie(Name, Req) ->
-	{Value, Data1} = kb_http:get_cookie(Name, Req#kb_request.data),
-	{Value, Req#kb_request{data=Data1}}.
+	kb_http:get_cookie(Name, Req#kb_request.data).
 
 -spec get_locales(Req :: #kb_request{}) -> {any_locale | Locales, #kb_request{}}
 	when Locales :: [Locale, ...],

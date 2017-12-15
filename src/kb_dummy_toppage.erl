@@ -13,21 +13,20 @@
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
 %%
+%% Modifications copyright (C) 2017 Sysvision, Lda.
+%%
 
 -module(kb_dummy_toppage).
 
--behaviour(cowboy_http_handler).
+-behaviour(cowboy_handler).
 
--export([init/3, handle/2, terminate/3]).
+-export([init/2, terminate/3]).
 
-init(_Transport, Data, Opts) ->
+init(Data, Opts) ->
 	ServerName = proplists:get_value(server, Opts),
 	Host = proplists:get_value(host, Opts),
-	{ok, Data, {ServerName, Host}}.
-
-handle(Data, {ServerName, Host}) ->
 	Output = io_lib:format("Kill Bill server ~p running for host [~p]", [ServerName, Host]),
-	{ok, Data2} = cowboy_req:reply(200, [], Output, Data),
+	Data2 = cowboy_req:reply(200, #{}, Output, Data),
 	{ok, Data2, {ServerName, Host}}.
 
 terminate(_Reason, _Data, _State) ->

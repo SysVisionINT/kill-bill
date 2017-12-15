@@ -122,22 +122,21 @@ handle_call({start_server, ServerName}, _From, State=#status{servers=Servers, we
 			ok;
 		{ok, Server} ->
 			Protocol = proplists:get_value(protocol, Server#server.config, ?PROTOCOL_HTTP),
-			NbAcceptors = proplists:get_value(acceptor_number, Server#server.config, 100),
 			Host = get_host(Server#server.config),
 			Port = get_port(Server#server.config),
 			
 			PathsList = get_server_paths(ServerName, Host, Server, Webapps),
 			
 			Dispatch = cowboy_router:compile([{Host, PathsList}]),
-			ProtoOpts = [{env, [{dispatch, Dispatch}]}],
+			ProtoOpts = #{env => #{dispatch => Dispatch}},
 			
 			TransOpts = get_server_config(Protocol, Port, Server#server.config),
 			
 			case Protocol of
 				?PROTOCOL_HTTP -> 
-					{ok, _} = cowboy:start_http(ServerName, NbAcceptors, TransOpts, ProtoOpts);
+					{ok, _} = cowboy:start_clear(ServerName, TransOpts, ProtoOpts);
 				?PROTOCOL_HTTPS -> 
-					{ok, _} = cowboy:start_https(ServerName, NbAcceptors, TransOpts, ProtoOpts)
+					{ok, _} = cowboy:start_tls(ServerName, TransOpts, ProtoOpts)
 			end,
 			
 			error_logger:info_msg("Server ~p started!\n", [ServerName]),
@@ -286,10 +285,9 @@ get_port(ServerConfig) ->
 	proplists:get_value(port, ServerConfig, 8080).
 
 get_server_config(Protocol, Port, ServerConfig) ->
-	MaxCon = proplists:get_value(max_connections, ServerConfig, infinity),
 	SslConfig = proplists:get_value(ssl, ServerConfig),
 	Ssl = get_ssl(Protocol, SslConfig),
-	lists:append([{port, Port}, {max_connections, MaxCon}], Ssl).
+	lists:append([{port, Port}], Ssl).
 
 get_ssl(?PROTOCOL_HTTP, _Ssl) -> [];
 get_ssl(_Protocol, none) -> [];

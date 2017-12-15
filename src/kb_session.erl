@@ -31,30 +31,30 @@
 	invalidate_session/2, 
 	invalidate_session/3, 
 	touch_session/2,
-	touch_session/3]).
+	touch_session_id/2]).
 
 -spec create_session_id() -> binary().
 create_session_id() ->
 	narciso:uuid().
 
 -spec get_session_id(Data :: cowboy_req:req()) -> 
-	{no_session, cowboy_req:req()} | {binary(), cowboy_req:req()}.
+	no_session | binary().
 get_session_id(Data) ->
 	case kb_http:get_cookie(?SESSION_COOKIE, Data) of
-		{undefined, Data1} -> {no_session, Data1};
-		{SessionID, Data1} -> {SessionID, Data1}
+		undefined -> no_session;
+		SessionID -> SessionID
 	end.
 
 -spec get_session(CacheName :: atom(), Data :: cowboy_req:req()) ->
-	{no_session, list(), cowboy_req:req()} | {binary(), list(), cowboy_req:req()}.
-get_session(none, Data) -> {no_session, ?SESSION_DATA, Data};
+	{no_session, list()} | {binary(), list()}.
+get_session(none, _Data) -> {no_session, ?SESSION_DATA};
 get_session(CacheName, Data) ->
 	case get_session_id(Data) of
-		{no_session, Data1} -> {no_session, ?SESSION_DATA, Data1};
-		{SessionID, Data1} -> 
+		no_session -> {no_session, ?SESSION_DATA};
+		SessionID -> 
 			case g_cache:get(CacheName, SessionID) of
-				{ok, SessionData, _Version} -> {SessionID, SessionData, Data1};
-				_ -> {SessionID, ?SESSION_DATA, Data1}
+				{ok, SessionData, _Version} -> {SessionID, SessionData};
+				_ -> {SessionID, ?SESSION_DATA}
 			end
 	end.
 
@@ -78,8 +78,8 @@ set_session(CacheName, SessionID, SessionData, Data) ->
 invalidate_session(none, Data) -> {ok, Data};
 invalidate_session(CacheName, Data) ->
 	case get_session_id(Data) of
-		{no_session, Data1} -> {ok, Data1};
-		{SessionID, Data1} -> invalidate_session(CacheName, SessionID, Data1)
+		no_session -> {ok, Data};
+		SessionID -> invalidate_session(CacheName, SessionID, Data)
 	end.
 
 -spec invalidate_session(CacheName :: atom(), SessionID :: binary(), Data :: cowboy_req:req()) ->
@@ -90,21 +90,19 @@ invalidate_session(CacheName, SessionID, Data) ->
 	g_cache:remove(CacheName, SessionID),
 	{ok, Data1}.
 
--spec touch_session(CacheName :: atom(), Data :: cowboy_req:req()) ->
-	{ok, cowboy_req:req()}.
-touch_session(none, Data) -> {ok, Data};
+-spec touch_session(CacheName :: atom(), Data :: cowboy_req:req()) -> ok.
+touch_session(none, _Data) -> ok;
 touch_session(CacheName, Data) ->
 	case get_session_id(Data) of
-		{no_session, Data1} -> {ok, Data1};
-		{SessionID, Data1} -> touch_session(CacheName, SessionID, Data1)
+		no_session -> ok;
+		SessionID -> touch_session_id(CacheName, SessionID)
 	end.
 
--spec touch_session(CacheName :: atom(), SessionID :: binary(), Data :: cowboy_req:req()) ->
-	{ok, cowboy_req:req()}.
-touch_session(none, _SessionID, Data) -> {ok, Data};
-touch_session(CacheName, SessionID, Data) ->
+-spec touch_session_id(CacheName :: atom(), SessionID :: binary()) -> ok.
+touch_session_id(none, _SessionID) -> ok;
+touch_session_id(CacheName, SessionID) ->
 	g_cache:touch(CacheName, SessionID),
-	{ok, Data}.
+	ok.
 
 %% ====================================================================
 %% Internal functions

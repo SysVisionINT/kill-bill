@@ -6,14 +6,6 @@ Kill-Bill
 Installation
 ------------
 
-Using rebar:
-
-```erlang
-{deps, [
-	{kill_bill, ".*", {git, "https://github.com/jjmrocha/kill-bill.git", "master"}}
-]}.
-```
-
 Using rebar3:
 
 ```erlang

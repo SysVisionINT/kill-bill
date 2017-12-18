@@ -246,18 +246,18 @@ Kill-Bill tags
 
 Kill-Bill provides two tags to be use on templates:
 
-### TAG context
+### TAG context_path
 
 Without parameters, returns the WebApp's context
 ```
-<form action="{% context %}action" method="post">
+<form action="{% context_path %}action" method="post">
 ...
 </form>
 ```
 
 With the "file" parameter, the TAG prefixes the path to the file with the WebApp's context:
 ```
-<img src="{% context file="/images/kill-bill-logo.png" %}">
+<img src="{% context_path file="/images/kill-bill-logo.png" %}">
 ```
 
 ### TAG message
@@ -272,5 +272,19 @@ Retrieves the localized message for "key" from the messages file (defined in the
 To use Kill-Bill's tags, add the following to your project's rebar.config:
 
 ```erlang
-{erlydtl_opts, [{custom_tags_modules, [kb_dtl_tag]}]}.
+{erlydtl_opts, [
+	{libraries, [{kb_dtl_tag, kb_dtl_tag}]},
+	{default_libraries, [kb_dtl_tag]}
+]}.
+```
+
+To compile a DTL directory with rebar3 compile add the following to your project's rebar.config:
+```erlang
+{provider_hooks, [
+	{post, [{compile, {erlydtl, compile}}]}
+].
+
+{plugins, [
+	{rebar3_erlydtl_plugin, ".*", {git, "https://github.com/tsloughter/rebar3_erlydtl_plugin.git", {branch, "master"}}}
+]}.
 ```

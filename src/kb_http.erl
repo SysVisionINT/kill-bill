@@ -28,8 +28,8 @@ get_header(Name, Data) ->
 
 set_cookie(Path, CookieName, Value, MaxAge, Data) ->
 	Opts = case MaxAge of
-		none -> [{path, Path}];
-		_ -> [{path, Path}, {max_age, MaxAge}] 
+		none -> #{path => Path};
+		_ -> #{path => Path, max_age => MaxAge}
 	end,
 	cowboy_req:set_resp_cookie(CookieName, Value, Data, Opts).
 
@@ -43,4 +43,3 @@ get_cookie(CookieName, Data) ->
 %% ====================================================================
 %% Internal functions
 %% ====================================================================
-

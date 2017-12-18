@@ -13,6 +13,8 @@
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
 %%
+%% Modifications copyright (C) 2017 Sysvision, Lda.
+%%
 
 -module(kb_template_util).
 
@@ -25,7 +27,7 @@
 
 execute(Path, Req) -> 
 	Dtl = get_dtl(Path),
-	kb_response:handle({dtl, Dtl, [], Req}).
+	kb_response:handle({dtl, Dtl, #{}, Req}).
 
 %% ====================================================================
 %% Internal functions

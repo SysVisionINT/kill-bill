@@ -7,7 +7,7 @@
 	</header>
 	<body>
 		<p align="left">
-			<img src="{% context file="/images/kill-bill-logo.png" %}">
+			<img src="{% context_path file="/images/kill-bill-logo.png" %}">
 		</p>
 		{% block content %}{% endblock %}
 	</body>

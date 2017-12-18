@@ -4,6 +4,8 @@
 
 start() ->
 	ok = application:start(crypto),
+	ok = application:start(public_key),
+	ok = application:start(ssl),
 	ok = application:start(syntax_tools),
 	ok = application:start(compiler),
 	ok = application:start(ranch),
@@ -13,4 +15,3 @@ start() ->
 	ok = base_deps:boot_apps(),
 	ok = application:start(kill_bill),
 	ok = application:start(examples).
-

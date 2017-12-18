@@ -9,9 +9,7 @@ start(_Type, _Args) ->
 	ServerConfig = {server_config, default, [
 				{host, '_'},
 				{protocol, http},
-				{port, 8080},
-				{acceptor_number, 100},
-				{max_connections, infinity}
+				{port, 8080}
 				]},
 	{ok, ServerID} = kill_bill:config_server(ServerConfig),
 	

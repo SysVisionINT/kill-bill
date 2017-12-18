@@ -26,9 +26,9 @@
 -export([handle/1]).
 
 handle({html, Value, Req}) -> 
-	handle({raw, 200, [{<<"content-type">>, <<"text/html">>}], Value, Req});
+	handle({raw, 200, #{<<"content-type">> => <<"text/html">>}, Value, Req});
 
-handle({json, Value, Req}) -> handle({json, 200, [{<<"content-type">>, <<"application/json">>}], Value, Req});
+handle({json, Value, Req}) -> handle({json, 200, #{<<"content-type">> => <<"application/json">>}, Value, Req});
 handle({json, Status, Headers, Value, Req}) -> 
 	Output = kb_json:encode(Value),
 	handle({raw, Status, Headers, Output, Req});
@@ -40,20 +40,20 @@ handle({dtl, Template, Args, Req}) ->
 			handle({html, Html, Req1});
 		{error, not_found} ->
 			Output = io_lib:format("Template [~p] not found", [Template]),
-			handle({raw, 404, [], Output, Req1});
+			handle({raw, 404, #{}, Output, Req1});
 		{error, Reason} ->
 			Output = io_lib:format("Error ~p running template [~p]", [Reason, Template]),
-			handle({raw, 500, [], Output, Req1})
+			handle({raw, 500, #{}, Output, Req1})
 	end;
 
 handle({redirect, Url, Req}) when is_list(Url) -> 
 	handle({redirect, list_to_binary(Url), Req});
 handle({redirect, Url, Req}) when is_binary(Url) -> 
-	handle({raw, 302, [{<<"Location">>, Url}], [], Req});
+	handle({raw, 302, #{<<"Location">> => Url}, [], Req});
 
-handle({raw, Status, Headers, Body, Req}) ->
+handle({raw, Status, Headers, Body, Req=#kb_request{data=Data}}) ->
 	ok = session_touch(Req),
-	cowboy_req:reply(Status, Headers, Body, Req).
+	cowboy_req:reply(Status, Headers, Body, Data).
 
 %% ====================================================================
 %% Internal functions

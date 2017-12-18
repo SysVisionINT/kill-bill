@@ -5,11 +5,11 @@
 <h1>{% message key="index_greetings" %}</h1>
 <br>
 <h1>{% message key="index_full" %}</h1>
-<a href="{% context %}action/form">{% message key="form_title" %}</a><br>
-<a href="{% context %}action/args?name=Joaquim&surname=Rocha">{% message key="args_list_title" %}</a><br>
-<a href="{% context %}action/json/1/create?name=Joe&surname=Armstrong">{% message key="index_json" %}</a><br>
-<a href="{% context %}action/google">{% message key="index_redirect" %}</a><br>
-<a href="{% context %}action/locale/{% message key="index_new_locale" %}">{% message key="index_locale" %}</a><br>
-<a href="{% context %}action/invalidate">{% message key="index_invalidate" %}</a><br>
+<a href="{% context_path %}action/form">{% message key="form_title" %}</a><br>
+<a href="{% context_path %}action/args?name=Joaquim&surname=Rocha">{% message key="args_list_title" %}</a><br>
+<a href="{% context_path %}action/json/1/create?name=Joe&surname=Armstrong">{% message key="index_json" %}</a><br>
+<a href="{% context_path %}action/google">{% message key="index_redirect" %}</a><br>
+<a href="{% context_path %}action/locale/{% message key="index_new_locale" %}">{% message key="index_locale" %}</a><br>
+<a href="{% context_path %}action/invalidate">{% message key="index_invalidate" %}</a><br>
 
 {% endblock %}

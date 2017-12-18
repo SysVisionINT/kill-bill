@@ -13,16 +13,31 @@
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
 %%
+%% Modifications copyright (C) 2017 Sysvision, Lda.
+%%
 
 -module(kb_dtl_tag).
+
+-behaviour(erlydtl_library).
 
 %% ====================================================================
 %% API functions
 %% ====================================================================
 -export([
+	version/0, % behaviour erlydtl_library
+	inventory/1, % behaviour erlydtl_library
 	message/2,
-	context/2,
+	context_path/2,
 	static/2]).
+
+version() -> 1.
+
+inventory(filters) -> [];
+inventory(tags) -> [
+	message,
+	context_path,
+	static
+].
 
 message(Args, Options) ->
 	case lists:keyfind(key, 1, Args) of
@@ -40,10 +55,10 @@ message(Args, Options) ->
 			end
 	end.
 
-context(Args, Options) ->
+context_path(Args, Options) ->
 	Context = case lists:keyfind(context, 1, Options) of
 		false ->
-			error_logger:error_msg("KB: No context\n"),
+			error_logger:error_msg("KB: No context_path\n"),
 			<<"/">>;
 		{_, Other} -> Other
 	end,
@@ -62,7 +77,7 @@ static(Args, Options) ->
 			<<"">>;
 		{_, F} -> F
 	end,
-	context([{file, join(Static, File)}], Options).
+	context_path([{file, join(Static, File)}], Options).
 
 %% ====================================================================
 %% Internal functions

@@ -4,7 +4,7 @@
 
 <h1>{% message key="form_title" %}</h1>
 <br>
-<form action="{% context %}action/form" method="post">
+<form action="{% context_path %}action/form" method="post">
 	<table border="0">
 		<tr>
 			<td>{% message key="form_field_id" %}:</td><td><input type="text" name="id"/></td>
@@ -34,6 +34,6 @@
 {% endif %}
 
 <br>
-<a href="{% context %}">{% message key="back" to="key=to_index" %}</a>
+<a href="{% context_path %}">{% message key="back" to="key=to_index" %}</a>
 
 {% endblock %}

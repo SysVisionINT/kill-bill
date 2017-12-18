@@ -17,6 +17,6 @@
 {% endif %}
 
 <br>
-<a href="{% context %}">{% message key="back" to="key=to_index" %}</a>
+<a href="{% context_path %}">{% message key="back" to="key=to_index" %}</a>
 
 {% endblock %}

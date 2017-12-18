@@ -1,6 +1,6 @@
 {application, examples, [
 	{description, "Kill-Bill examples."},
-	{vsn, "1"},
+	{vsn, "2"},
 	{modules, [
 		examples_action, 
 		examples_app, 

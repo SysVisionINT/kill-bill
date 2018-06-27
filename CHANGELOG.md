@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.2.0] - 2018-06-27
+
+- Log requests for debugging purposes
+
+### Changed
+
+```erlang
+- kb_cowboy_action:init(...) - check the flag before logging and add an unique id to the log string.
+- kill_bill_sup:init(...) - load the flag from applications' env if exists
+- kill_bill.erl - new function log_actions/2 to change the log flag
+```
+
 ## [1.1.0] - 2017-12-18
 
 - Upgraded to rebar3.
@@ -7,6 +19,7 @@
 
 ### Changed
 - The following functions no longer return the changed request
+
 ```erlang
 kb_action_helper:get_accept_header
 kb_action_helper:get_content_type
@@ -21,10 +34,12 @@ kb_session:touch_session
 ```
 
 - Renamed
+
 ```erlang
 kb_session:touch_session(CacheName :: atom(), SessionID :: binary(), Data :: cowboy_req:req())
 ```
 to
+
 ```erlang
 kb_session:touch_session_id(CacheName :: atom(), SessionID :: binary())
 ```

@@ -13,7 +13,7 @@
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
 %%
-%% Modifications copyright (C) 2017 Sysvision, Lda.
+%% Modifications copyright (C) 2017-18 Sysvision, Lda.
 %%
 
 -module(kb_cowboy_action).
@@ -39,7 +39,11 @@ init(Data, Opts) ->
 	Method = cowboy_req:method(Data),
 	Path = cowboy_req:path_info(Data),
 	Request = BaseRequest#kb_request{method=Method, data=Data},
+	LogID = narciso:uuid(),
+	LogFlag = proplists:get_value(log_actions, Opts),
+	log(LogFlag, LogID, "KB_REQUEST", Request),
 	Response = handle(CallbackList, Path, Request),
+	log(LogFlag, LogID, "KB_RESPONSE", Response),
 	Data2 = kb_response:handle(Response),
 	{ok, Data2, {BaseRequest, CallbackList}}.
 
@@ -53,3 +57,7 @@ handle([Callback|T], Path, Request = #kb_request{method=Method}) ->
 		Response -> Response
 	end;
 handle([], _Path, Request) -> {raw, 500, [], <<"No handler for request">>, Request}.
+
+log(true, ID, Type, Data) ->
+	error_logger:info_msg("[~s] ~s: ~140p~n", [ID, Type, Data]);
+log(_, _, _, _) -> ok.

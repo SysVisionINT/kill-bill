@@ -13,7 +13,7 @@
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
 %%
-%% Modifications copyright (C) 2017 Sysvision, Lda.
+%% Modifications copyright (C) 2017-18 Sysvision, Lda.
 %%
 
 -module(kill_bill).
@@ -26,16 +26,17 @@
 -define(SERVER, {local, ?MODULE}).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([start_link/0]).
+-export([start_link/1]).
 -export([config_server/1, start_server/1, stop_server/1, get_server_list/0]).
 -export([deploy/2, undeploy/1, get_webapp_list/0]).
+-export([log_actions/2]).
 
 %% ====================================================================
 %% API functions
 %% ====================================================================
 
-start_link() ->
-	gen_server:start_link(?SERVER, ?MODULE, [], []).
+start_link(Args) ->
+	gen_server:start_link(?SERVER, ?MODULE, Args, []).
 
 -spec config_server(ServerConfig :: Config) -> {ok, ServerName :: atom()} | {error, Reason :: any()} 
 	when Config :: ConfigFile :: string()
@@ -81,18 +82,22 @@ undeploy(WebAppName) when is_atom(WebAppName) ->
 get_webapp_list() ->
 	gen_server:call(?MODULE, {get_webapp_list}).
 
+-spec log_actions(WebAppName :: atom(), Flag :: boolean()) -> ok.
+log_actions(WebAppName, Flag) when is_atom(WebAppName) andalso is_boolean(Flag) ->
+	gen_server:call(?MODULE, {log_actions, WebAppName, Flag}).
+
 %% ====================================================================
 %% Behavioural functions 
 %% ====================================================================
 
 -record(server, {config, webapps = [], running=false}).
 -record(webapp, {config, resource, server, session}).
--record(status, {servers, webapps}).
+-record(status, {servers, webapps, log_actions}).
 
-init([]) ->
-	process_flag(trap_exit, true),	
-	error_logger:info_msg("Bang Bang, ~p [~p] Starting...\n", [?MODULE, self()]),
-	{ok, #status{servers=dict:new(), webapps=dict:new()}}.
+init(LogActions) ->
+	process_flag(trap_exit, true),
+	error_logger:info_msg("Bang Bang, ~p [~p - LogActions: ~p] Starting...\n", [?MODULE, self(), LogActions]),
+	{ok, #status{servers=dict:new(), webapps=dict:new(), log_actions=LogActions}}.
 
 handle_call({config_server, ServerName, Config}, _From, State=#status{servers=Servers}) ->
 	Reply = case dict:find(ServerName, Servers)  of
@@ -112,7 +117,7 @@ handle_call({config_server, ServerName, Config}, _From, State=#status{servers=Se
 			{error, server_running}
 	end,
 	{reply, Reply, NState};
-handle_call({start_server, ServerName}, _From, State=#status{servers=Servers, webapps=Webapps}) ->
+handle_call({start_server, ServerName}, _From, State=#status{servers=Servers, webapps=Webapps, log_actions=LogActions}) ->
 	Reply = case dict:find(ServerName, Servers)  of
 		error ->			
 			error_logger:error_msg("KB: Server ~p not found\n", [ServerName]),
@@ -127,7 +132,7 @@ handle_call({start_server, ServerName}, _From, State=#status{servers=Servers, we
 			Host = get_host(Server#server.config),
 			Port = get_port(Server#server.config),
 			
-			PathsList = get_server_paths(ServerName, Host, Server, Webapps),
+			PathsList = get_server_paths(ServerName, Host, Server, Webapps, LogActions),
 			
 			Dispatch = cowboy_router:compile([{Host, PathsList}]),
 			ProtoOpts = #{env => #{dispatch => Dispatch}},
@@ -177,7 +182,7 @@ handle_call({get_server_list}, From, State=#status{servers=Servers}) ->
 	end,
 	spawn(Fun),
 	{noreply, State};
-handle_call({deploy, ServerName, {WebAppName, Config}}, _From, State=#status{servers=Servers, webapps=Webapps}) ->
+handle_call({deploy, ServerName, {WebAppName, Config}}, _From, State=#status{servers=Servers, webapps=Webapps, log_actions=LogActions}) ->
 	Reply = case dict:find(WebAppName, Webapps) of
 		error ->
 			case dict:find(ServerName, Servers) of
@@ -197,7 +202,7 @@ handle_call({deploy, ServerName, {WebAppName, Config}}, _From, State=#status{ser
 					case NServer#server.running of
 						true ->
 							Host = get_host(NServer#server.config),
-							PathsList = get_server_paths(ServerName, Host, NServer, NWebapps),
+							PathsList = get_server_paths(ServerName, Host, NServer, NWebapps, LogActions),
 							Dispatch = cowboy_router:compile([{Host, PathsList}]),
 							cowboy:set_env(ServerName, dispatch, Dispatch);
 						false -> ok
@@ -213,7 +218,7 @@ handle_call({deploy, ServerName, {WebAppName, Config}}, _From, State=#status{ser
 			{error, duplicated}
 	end,
 	{reply, Reply, NState};
-handle_call({undeploy, WebAppName}, _From, State=#status{servers=Servers, webapps=Webapps}) ->
+handle_call({undeploy, WebAppName}, _From, State=#status{servers=Servers, webapps=Webapps, log_actions=LogActions}) ->
 	Reply = case dict:find(WebAppName, Webapps) of
 		error ->			
 			error_logger:error_msg("KB: WebApp ~p not found\n", [WebAppName]),
@@ -228,7 +233,7 @@ handle_call({undeploy, WebAppName}, _From, State=#status{servers=Servers, webapp
 			case NServer#server.running of
 				true ->
 					Host = get_host(NServer#server.config),
-					PathsList = get_server_paths(WebApp#webapp.server, Host, NServer, NWebapps),
+					PathsList = get_server_paths(WebApp#webapp.server, Host, NServer, NWebapps, LogActions),
 					
 					Dispatch = cowboy_router:compile([{Host, PathsList}]),
 					cowboy:set_env(WebApp#webapp.server, dispatch, Dispatch);
@@ -252,7 +257,28 @@ handle_call({get_webapp_list}, From, State=#status{webapps=Webapps}) ->
 			gen_server:reply(From, Reply)
 	end,
 	spawn(Fun),
-	{noreply, State}.
+	{noreply, State};
+handle_call({log_actions, WebAppName, Flag}, _From, State=#status{servers=Servers, webapps=Webapps}) ->
+	Reply = case dict:find(WebAppName, Webapps) of
+		error ->			
+			error_logger:error_msg("KB: WebApp ~p not found\n", [WebAppName]),
+			NState = State,
+			{error, not_found};
+		{ok, WebApp} ->
+			{ok, Server} = dict:find(WebApp#webapp.server, Servers),
+			case Server#server.running of
+				true ->
+					Host = get_host(Server#server.config),
+					PathsList = get_server_paths(WebApp#webapp.server, Host, Server, Webapps, Flag),
+					Dispatch = cowboy_router:compile([{Host, PathsList}]),
+					cowboy:set_env(WebApp#webapp.server, dispatch, Dispatch);
+				false -> ok
+			end,
+			error_logger:info_msg("WebApp ~p changed log_actions flag to ~p\n", [WebAppName, Flag]),
+			NState = State#status{log_actions=Flag},
+			ok
+	end,
+	{reply, Reply, NState}.
 
 handle_cast(Msg, State) ->
 	error_logger:info_msg("handle_cast(~p)\n", [Msg]),
@@ -329,13 +355,13 @@ stop_session(none) -> ok;
 stop_session(SessionCache) ->
 	gibreel:delete_cache(SessionCache).
 
-get_server_paths(ServerName, Host, Server, Webapps) ->
+get_server_paths(ServerName, Host, Server, Webapps, LogActions) ->
 	case Server#server.webapps of 
 		[] -> 
 			[{'_', kb_dummy_toppage, [{server, ServerName}, {host, Host}]}];
 		WAList -> 
 			AppList = get_app_list(WAList, Webapps, []),
-			get_web_app_config(AppList, [])
+			get_web_app_config(AppList, [], LogActions)
 	end.
 
 get_app_list([], _Webapps, AppList) ->
@@ -349,26 +375,25 @@ get_app_list([WebAppName|T], Webapps, AppList) ->
 remove_slashs(Path) ->
 	kb_util:remove_if_ends_with(kb_util:remove_if_starts_with(Path, "/"), "/").
 
-get_web_app_config([], Paths) -> lists:reverse(Paths);
-get_web_app_config([{_WebAppName, Context, WebApp} | T], Paths) ->
+get_web_app_config([], Paths, _LogActions) -> lists:reverse(Paths);
+get_web_app_config([{_WebAppName, Context, WebApp} | T], Paths, LogActions) ->
 	ResourceServer = WebApp#webapp.resource,
 	SessionManager = WebApp#webapp.session,
 	TemplateConfig = proplists:get_value(template, WebApp#webapp.config, none),
 	ActionConfig = proplists:get_value(action, WebApp#webapp.config, []),
 	StaticConfig = proplists:get_value(static, WebApp#webapp.config, none),
 	Static = get_static(StaticConfig),
-	Options = [
-			{resource_server, ResourceServer},
-			{context, Context},
-			{session_manager, SessionManager},
-			{static, Static}
-			],
+	Options = [{resource_server, ResourceServer},
+	           {context, Context},
+	           {session_manager, SessionManager},
+	           {static, Static},
+	           {log_actions, LogActions}],
 	ActionPath = action_path(ActionConfig, [], []),
 	PathsWithTemplate = add_template(TemplateConfig, Context, Options, []),
 	PathsWithAction = add_action(ActionPath, Context, Options, PathsWithTemplate),
 	PathsWithStatic = add_static(StaticConfig, Context, PathsWithAction),
 	Sorted = lists:sort(fun({A, _, _}, {B, _, _}) -> sort_paths(A, B) end, PathsWithStatic),
-	get_web_app_config(T, lists:append(Sorted, Paths)).
+	get_web_app_config(T, lists:append(Sorted, Paths), LogActions).
 
 get_static(none) -> "";
 get_static(Config) ->

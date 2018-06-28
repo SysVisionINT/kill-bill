@@ -13,6 +13,8 @@
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
 %%
+%% Modifications copyright (C) 2018 Sysvision, Lda.
+%%
 
 -module(kb_util).
 
@@ -20,10 +22,11 @@
 %% API functions
 %% ====================================================================
 -export([remove_if_starts_with/2, 
-		 remove_if_ends_with/2, 
-		 implements_behaviour/2, 
-		 to_hex/1,
-		 upper/1]).
+         remove_if_ends_with/2, 
+         implements_behaviour/2, 
+         to_hex/1,
+         upper/1,
+         log/4]).
 
 remove_if_starts_with(String, Search) ->
 	case string:str(String, Search) of
@@ -60,6 +63,10 @@ upper(Value) when is_binary(Value) ->
 	list_to_binary(Upper);
 upper(Value) ->
 	string:to_upper(Value).
+
+log(true, ID, Type, Data) ->
+	error_logger:info_msg("[~s] ~s: ~140p~n", [ID, Type, Data]);
+log(_, _, _, _) -> ok.
 
 %% ====================================================================
 %% Internal functions

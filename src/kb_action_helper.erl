@@ -13,7 +13,7 @@
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
 %%
-%% Modifications copyright (C) 2017 Sysvision, Lda.
+%% Modifications copyright (C) 2017-18 Sysvision, Lda.
 %%
 
 -module(kb_action_helper).
@@ -81,11 +81,12 @@ get_accept_header(Req) ->
 
 -spec get_args(Req :: #kb_request{}) -> {Args, #kb_request{}}
 	when Args :: [{binary(), binary()}, ...].
-get_args(Req=#kb_request{method=Method, data=Data}) ->
+get_args(Req=#kb_request{log_id=LogID, log_actions=LogFlag, method=Method, data=Data}) ->
 	QSVals = cowboy_req:parse_qs(Data),
 	{BodyQS1, Data2} = case Method of
 		<<"POST">> ->
 			{ok, BodyQS, Data1} = cowboy_req:read_urlencoded_body(Data),
+			kb_util:log(LogFlag, LogID, "get_args: BodyQS", BodyQS),
 			{BodyQS, Data1};
 		_ -> {[], Data}
 	end,
@@ -93,8 +94,8 @@ get_args(Req=#kb_request{method=Method, data=Data}) ->
 	{QS, Req#kb_request{data=Data2}}.
 
 -spec get_json(Req :: #kb_request{}) -> {jsx:json_term(), #kb_request{}}.
-get_json(Req) ->
-	case Req#kb_request.method of
+get_json(Req=#kb_request{log_id=LogID, log_actions=LogFlag, method=Method, data=Data}) ->
+	case Method of
 		<<"GET">> ->
 			{Args, Req1} = get_args(Req),
 			JSon = kb_json:from_proplist(Args),
@@ -103,11 +104,13 @@ get_json(Req) ->
 			ContentType = get_content_type(Req),
 			case mime_type(ContentType) of
 				?JSON_CONTENT_TYPE ->
-					{ok, Body, Data1} = cowboy_req:read_body(Req#kb_request.data),
+					{ok, Body, Data1} = cowboy_req:read_body(Data),
+					kb_util:log(LogFlag, LogID, "get_json: Body", Body),
 					JSon = kb_json:decode(Body),
 					{JSon, Req#kb_request{data=Data1}};
 				?FORM_CONTENT_TYPE ->
-					{ok, BodyQS, Data1} = cowboy_req:read_urlencoded_body(Req#kb_request.data),
+					{ok, BodyQS, Data1} = cowboy_req:read_urlencoded_body(Data),
+					kb_util:log(LogFlag, LogID, "get_json: BodyQS", BodyQS),
 					JSon = jsondoc:from_proplist(BodyQS),
 					{JSon, Req#kb_request{data=Data1}};
 				_ -> {[], Req}
@@ -115,8 +118,9 @@ get_json(Req) ->
 	end.
 
 -spec get_body(Req :: #kb_request{}) -> {binary(), #kb_request{}}.
-get_body(Req) ->
-	{ok, Body, Data1} = cowboy_req:read_body(Req#kb_request.data),
+get_body(Req=#kb_request{log_id=LogID, log_actions=LogFlag, data=Data}) ->
+	{ok, Body, Data1} = cowboy_req:read_body(Data),
+	kb_util:log(LogFlag, LogID, "get_body: Body", Body),
 	{Body, Req#kb_request{data=Data1}}.
 
 -spec get_session(Req :: #kb_request{}) -> {SessionData, #kb_request{}}

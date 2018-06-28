@@ -13,25 +13,26 @@
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
 %%
+%% Modifications copyright (C) 2018 Sysvision, Lda.
+%%
 
 -define(SYSTEM_CHOSEN_LANGUAGE, chosen_language).
 
 -define(ANY_LOCALE, any_locale).
 -define(NO_COUNTRY_IN_LOCALE, none).
 
--record(kb_request, {
-				context,
-				static,
-				action_prefix,
-				resource_server,
-				session_manager,
-				session_key=none,
-				session_data=none,
-				session_saved=no,
-				locales=none,
-				resources=none,
-				attributes=[],
-				method,
-				data
-			}
-		).
+-record(kb_request, {log_id,
+                     log_actions,
+                     context,
+                     static,
+                     action_prefix,
+                     resource_server,
+                     session_manager,
+                     session_key=none,
+                     session_data=none,
+                     session_saved=no,
+                     locales=none,
+                     resources=none,
+                     attributes=[],
+                     method,
+                     data}).

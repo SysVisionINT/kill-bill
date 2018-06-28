@@ -31,7 +31,11 @@ init(Data, Opts) ->
 	SessionManager = proplists:get_value(session_manager, Opts),
 	Static = proplists:get_value(static, Opts),
 	ActionPrefix = proplists:get_value(action_prefix, Opts),
-	BaseRequest = #kb_request{context=list_to_binary(Context),
+	LogFlag = proplists:get_value(log_actions, Opts),
+	LogID = narciso:uuid(),
+	BaseRequest = #kb_request{log_id=LogID,
+	                          log_actions=LogFlag,
+	                          context=list_to_binary(Context),
 	                          resource_server=ResourceServer,
 	                          session_manager=SessionManager,
 	                          static=list_to_binary(Static),
@@ -39,11 +43,9 @@ init(Data, Opts) ->
 	Method = cowboy_req:method(Data),
 	Path = cowboy_req:path_info(Data),
 	Request = BaseRequest#kb_request{method=Method, data=Data},
-	LogID = narciso:uuid(),
-	LogFlag = proplists:get_value(log_actions, Opts),
-	log(LogFlag, LogID, "KB_REQUEST", Request),
+	kb_util:log(LogFlag, LogID, "KB_REQUEST", Request),
 	Response = handle(CallbackList, Path, Request),
-	log(LogFlag, LogID, "KB_RESPONSE", Response),
+	kb_util:log(LogFlag, LogID, "KB_RESPONSE", Response),
 	Data2 = kb_response:handle(Response),
 	{ok, Data2, {BaseRequest, CallbackList}}.
 
@@ -58,6 +60,3 @@ handle([Callback|T], Path, Request = #kb_request{method=Method}) ->
 	end;
 handle([], _Path, Request) -> {raw, 500, [], <<"No handler for request">>, Request}.
 
-log(true, ID, Type, Data) ->
-	error_logger:info_msg("[~s] ~s: ~140p~n", [ID, Type, Data]);
-log(_, _, _, _) -> ok.

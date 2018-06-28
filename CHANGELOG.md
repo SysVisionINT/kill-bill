@@ -1,15 +1,18 @@
 # Changelog
 
-## [1.2.0] - 2018-06-27
+## [1.2.0] - 2018-06-28
 
 - Log requests for debugging purposes
 
 ### Changed
 
 ```erlang
+- kb_action_helper.erl - log the request body after reading.
 - kb_cowboy_action:init(...) - check the flag before logging and add an unique id to the log string.
-- kill_bill_sup:init(...) - load the flag from applications' env if exists
-- kill_bill.erl - new function log_actions/2 to change the log flag
+- kb_util.erl - new log function.
+- kill_bill.hrl - new fields in kb_request record.
+- kill_bill_sup:init(...) - load the flag from applications' env if exists.
+- kill_bill.erl - new function log_actions/2 to change the log flag.
 ```
 
 ## [1.1.0] - 2017-12-18
